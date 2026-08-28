@@ -16,7 +16,7 @@ ROM_BRANCH="cnb"
 MANIFEST_URL="https://github.com/Lafactorial/local_manifest.git"
 MANIFEST_BRANCH="garnet-evo"
 
-DEVICE="garnet-evo"
+DEVICE="garnet"
 BUILD_VARIANT="cp2a-user"
 LUNCH_TARGET="lineage_garnet-cp2a-user"
 
@@ -65,7 +65,7 @@ banner() {
     echo "║              Automated Release Builder                    ║"
     echo "║                                                            ║"
     echo "╠════════════════════════════════════════════════════════════╣"
-    echo "║  Device     : POCO x6 5G / peridot                         ║"
+    echo "║  Device     : POCO x6 5G / garnet                         ║"
     echo "║  Build      : cp2a-user                                   ║"
     echo "║  Branch     : cnb                                         ║"
     echo "║  Release    : ZIP only                                    ║"

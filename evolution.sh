@@ -17,7 +17,6 @@ MANIFEST_URL="https://github.com/Lafactorial/local_manifest.git"
 MANIFEST_BRANCH="garnet-evo"
 
 DEVICE="garnet"
-BUILD_VARIANT="cp2a-user"
 LUNCH_TARGET="lineage_garnet-cp2a-user"
 
 export TZ="Europe/Istanbul"
@@ -35,11 +34,32 @@ BLUE='\033[34m'
 CYAN='\033[36m'
 BOLD='\033[1m'
 
+section() {
+    echo
+    echo -e "${CYAN}${BOLD}╔════════════════════════════════════════════════════════════╗${RESET}"
+    printf "${CYAN}${BOLD}║  %-56s║${RESET}\n" "$1"
+    echo -e "${CYAN}${BOLD}╚════════════════════════════════════════════════════════════╝${RESET}"
+}
+
+info() {
+    echo -e "${BLUE}ℹ ${RESET}$1"
+}
+
+ok() {
+    echo -e "${GREEN}✔ ${RESET}$1"
+}
+
+warn() {
+    echo -e "${YELLOW}⚠ ${RESET}$1"
+}
+
+fail() {
+    echo -e "${RED}✖ ${RESET}$1"
+}
+
 # -----------------------------
 # Runtime variables
 # -----------------------------
-PIXELDRAIN_URL=""
-GOFILE_URL=""
 BUILD_MARKER="out/.garnet_evolution_first_build_done"
 
 JOB_START=$(date +%s)
@@ -65,274 +85,12 @@ banner() {
     echo "║              Automated Release Builder                    ║"
     echo "║                                                            ║"
     echo "╠════════════════════════════════════════════════════════════╣"
-    echo "║  Device     : POCO x6 5G / garnet                         ║"
+    echo "║  Device     : POCO X6 5G / garnet                         ║"
     echo "║  Build      : cp2a-user                                   ║"
     echo "║  Branch     : cnb                                         ║"
-    echo "║  Release    : ZIP only                                    ║"
-    echo "║  Upload     : PixelDrain + GoFile                        ║"
-    echo "║  Notify     : Telegram                                    ║"
     echo "╚════════════════════════════════════════════════════════════╝"
     echo -e "${RESET}"
 }
-
-description() {
-    echo
-    echo -e "${CYAN}${BOLD}╭────────────────────────────────────────────────────────────╮${RESET}"
-    echo -e "${CYAN}${BOLD}│ ABOUT                                                      │${RESET}"
-    echo -e "${CYAN}${BOLD}├────────────────────────────────────────────────────────────┤${RESET}"
-    echo -e "${CYAN}│${RESET} Evolution-X automated build and release script for       ${CYAN}│${RESET}"
-    echo -e "${CYAN}│${RESET} ${BOLD}POCO X6 5G (garnet)${RESET}.                                    ${CYAN}│${RESET}"
-    echo -e "${CYAN}│${RESET}                                                            ${CYAN}│${RESET}"
-    echo -e "${CYAN}│${RESET} Source → Sync → Build → Package → Upload → Notify         ${CYAN}│${RESET}"
-    echo -e "${CYAN}│${RESET}                                                            ${CYAN}│${RESET}"
-    echo -e "${CYAN}│${RESET} The final ROM ZIP is uploaded to PixelDrain and GoFile,   ${CYAN}│${RESET}"
-    echo -e "${CYAN}│${RESET} then the download links are sent to Telegram automatically.${CYAN}│${RESET}"
-    echo -e "${CYAN}╰────────────────────────────────────────────────────────────╯${RESET}"
-    echo
-}
-
-# ============================================================
-# Optional .env
-# ============================================================
-
-if [[ -f ".env" ]]; then
-    source ".env"
-    ok ".env loaded"
-else
-    warn ".env not found - continuing"
-fi
-
-# ============================================================
-# Telegram
-# ============================================================
-
-tg_send() {
-    local MESSAGE="$1"
-
-    [[ -z "${TELEGRAM_BOT_TOKEN:-}" ]] && return 0
-    [[ -z "${TELEGRAM_CHAT_ID:-}" ]] && return 0
-
-    curl -sS \
-        -X POST \
-        "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-        -d "chat_id=${TELEGRAM_CHAT_ID}" \
-        --data-urlencode "text=${MESSAGE}" \
-        >/dev/null 2>&1 || true
-}
-
-# ============================================================
-# Telegram - Build Started
-# ============================================================
-
-notify_build_start() {
-
-    tg_send "🚀 Evolution-X build started
-
-Device: ${DEVICE}
-Variant: ${BUILD_VARIANT}
-Branch: ${ROM_BRANCH}
-Host: ${BUILD_HOSTNAME}
-Builder: ${BUILD_USERNAME}
-
-⏳ Build in progress..."
-}
-
-# ============================================================
-# Telegram - Build Failed
-# ============================================================
-
-notify_build_failed() {
-
-    tg_send "❌ Evolution-X build FAILED
-
-Device: ${DEVICE}
-Variant: ${BUILD_VARIANT}
-Branch: ${ROM_BRANCH}
-Host: ${BUILD_HOSTNAME}
-
-⚠️ Check the Crave build output for details."
-}
-
-# ============================================================
-# Telegram - Artifact
-# ============================================================
-
-notify_artifact() {
-
-    local FILE="$1"
-
-    local NAME
-    local SIZE
-
-    NAME=$(basename "$FILE")
-    SIZE=$(du -h "$FILE" | cut -f1)
-
-    local MESSAGE="📦 Evolution-X
-
-Device: ${DEVICE}
-Variant: ${BUILD_VARIANT}
-
-📄 ${NAME}
-💾 ${SIZE}"
-
-    # -------------------------------
-    # PixelDrain
-    # -------------------------------
-
-    if [[ -n "${PIXELDRAIN_URL}" ]]; then
-
-        MESSAGE="${MESSAGE}
-
-🟢 PixelDrain
-${PIXELDRAIN_URL}"
-
-    else
-
-        MESSAGE="${MESSAGE}
-
-🔴 PixelDrain
-Upload failed/skipped"
-
-    fi
-
-    # -------------------------------
-    # GoFile
-    # -------------------------------
-
-    if [[ -n "${GOFILE_URL}" ]]; then
-
-        MESSAGE="${MESSAGE}
-
-🟢 GoFile
-${GOFILE_URL}"
-
-    else
-
-        MESSAGE="${MESSAGE}
-
-🔴 GoFile
-Upload failed/skipped"
-
-    fi
-
-    tg_send "$MESSAGE"
-}
-
-# ============================================================
-# Telegram - Finished
-# ============================================================
-
-notify_finished() {
-
-    local MINUTES="$1"
-
-    tg_send "🏁 Evolution-X build finished
-
-Device: ${DEVICE}
-Variant: ${BUILD_VARIANT}
-
-⏱ Total time: ${MINUTES} minutes"
-}
-
-# ============================================================
-# PixelDrain Upload
-# ============================================================
-
-upload_pixeldrain() {
-
-    local FILE="$1"
-
-    PIXELDRAIN_URL=""
-
-    if [[ ! -f "$FILE" ]]; then
-        fail "File not found: $FILE"
-        return 1
-    fi
-
-    if [[ -z "${PIXELDRAIN_TOKEN:-}" ]]; then
-        warn "PIXELDRAIN_TOKEN not set"
-        return 1
-    fi
-
-    section "PixelDrain Upload"
-
-    info "File: $(basename "$FILE")"
-    info "Size: $(du -h "$FILE" | cut -f1)"
-
-    local RESPONSE
-    local FILE_ID
-
-    RESPONSE=$(curl \
-        --progress-bar \
-        -T "$FILE" \
-        -u ":${PIXELDRAIN_TOKEN}" \
-        "https://pixeldrain.com/api/file/" 2>/dev/null)
-
-    FILE_ID=$(echo "$RESPONSE" | jq -r '.id // empty')
-
-    if [[ -z "$FILE_ID" ]]; then
-
-        fail "PixelDrain upload failed"
-
-        echo "$RESPONSE"
-
-        return 1
-
-    fi
-
-    PIXELDRAIN_URL="https://pixeldrain.com/u/${FILE_ID}"
-
-    ok "PixelDrain upload complete"
-    info "$PIXELDRAIN_URL"
-}
-
-# ============================================================
-# GoFile Upload
-# ============================================================
-
-upload_gofile() {
-
-    local FILE="$1"
-
-    GOFILE_URL=""
-
-    if [[ ! -f "$FILE" ]]; then
-        fail "File not found: $FILE"
-        return 1
-    fi
-
-    section "GoFile Upload"
-
-    info "File: $(basename "$FILE")"
-    info "Size: $(du -h "$FILE" | cut -f1)"
-
-    local RESPONSE
-    local DOWNLOAD_URL
-
-    RESPONSE=$(curl \
-        --progress-bar \
-        -X POST \
-        -F "file=@${FILE}" \
-        "https://upload-ap-sgp.gofile.io/uploadfile" 2>/dev/null)
-
-    DOWNLOAD_URL=$(echo "$RESPONSE" | jq -r '.data.downloadPage // empty')
-
-    if [[ -z "$DOWNLOAD_URL" ]]; then
-
-        fail "GoFile upload failed"
-
-        echo "$RESPONSE"
-
-        return 1
-
-    fi
-
-    GOFILE_URL="$DOWNLOAD_URL"
-
-    ok "GoFile upload complete"
-    info "$GOFILE_URL"
-}
-
 
 # ============================================================
 # Start
@@ -373,6 +131,7 @@ section "Preparing Workspace"
 
 rm -rf .repo/local_manifests
 rm -rf "device/xiaomi/${DEVICE}"
+rm -rf prebuilts/gcc 2>/dev/null || true
 
 ok "Workspace prepared"
 
@@ -472,14 +231,6 @@ section "Loading Build Environment"
 ok "Build environment loaded"
 
 # ============================================================
-# Load .env Again
-# ============================================================
-
-if [[ -f ".env" ]]; then
-    source ".env"
-fi
-
-# ============================================================
 # Lunch
 # ============================================================
 
@@ -489,7 +240,7 @@ echo -e "${CYAN}${BOLD}"
 echo "╭────────────────────────────────────────────────────────────╮"
 echo "│ TARGET                                                     │"
 echo "├────────────────────────────────────────────────────────────┤"
-echo "│ Device     : POCO X6 5G / garnet                          │"
+echo "│ Device     : POCO X6 5G/ garnet                           │"
 echo "│ Product    : lineage_garnet                               │"
 echo "│ Variant    : cp2a-user                                    │"
 echo "│ Build type : User                                         │"
@@ -501,12 +252,6 @@ info "Selecting target: ${LUNCH_TARGET}"
 lunch "${LUNCH_TARGET}"
 
 ok "Build target selected: ${LUNCH_TARGET}"
-
-# ============================================================
-# Telegram
-# ============================================================
-
-notify_build_start
 
 # ============================================================
 # Build Cleanup
@@ -568,8 +313,6 @@ if [[ "${BUILD_SUCCESS}" != "1" ]]; then
     fail "Evolution-X build failed"
     info "Build time: ${BUILD_MINUTES} minutes"
 
-    notify_build_failed
-
     exit 1
 
 fi
@@ -586,100 +329,6 @@ touch "${BUILD_MARKER}"
 ok "Successful build marker updated"
 
 # ============================================================
-# Find Artifacts
-# ============================================================
-
-section "Release Artifact"
-info "Searching for the final Evolution-X ZIP (target_files and OTA helper ZIPs excluded)"
-
-ARTIFACTS=()
-
-# ------------------------------------------------------------
-# ROM ZIP ONLY
-# ------------------------------------------------------------
-
-while IFS= read -r -d '' FILE; do
-
-    ARTIFACTS+=("$FILE")
-
-done < <(
-    find "out/target/product/${DEVICE}" \
-        -maxdepth 1 \
-        -type f \
-        -name "*.zip" \
-        ! -name "*target_files*" \
-        ! -name "*ota*" \
-        -print0
-)
-
-# ============================================================
-# Artifact Check
-# ============================================================
-
-if [[ ${#ARTIFACTS[@]} -eq 0 ]]; then
-
-    warn "No ROM ZIP found"
-
-    tg_send "⚠️ Evolution-X build completed
-
-Device: ${DEVICE}
-Variant: ${BUILD_VARIANT}
-
-❌ No ROM ZIP was found.
-Upload skipped."
-
-else
-
-    ok "Found ${#ARTIFACTS[@]} ROM ZIP(s)"
-
-    for FILE in "${ARTIFACTS[@]}"; do
-
-        echo
-        info "$(basename "$FILE")"
-        info "Size: $(du -h "$FILE" | cut -f1)"
-
-    done
-
-    # ========================================================
-    # Upload
-    # ========================================================
-
-    for FILE in "${ARTIFACTS[@]}"; do
-
-        PIXELDRAIN_URL=""
-        GOFILE_URL=""
-
-        echo
-
-        section "Release Uploads"
-
-        info "Artifact: $(basename "$FILE")"
-        info "Destinations: PixelDrain + GoFile"
-        info "ZIP only"
-
-        # -------------------------------
-        # PixelDrain
-        # -------------------------------
-
-        upload_pixeldrain "$FILE" || true
-
-        # -------------------------------
-        # GoFile
-        # -------------------------------
-
-        upload_gofile "$FILE" || true
-
-        # -------------------------------
-        # Telegram
-        # -------------------------------
-
-        notify_artifact "$FILE"
-
-    done
-
-fi
-
-# ============================================================
 # Finish
 # ============================================================
 
@@ -690,8 +339,6 @@ section "Job Complete"
 
 ok "Everything finished"
 info "Total time: ${TOTAL_MINUTES} minutes"
-
-notify_finished "${TOTAL_MINUTES}"
 
 echo
 

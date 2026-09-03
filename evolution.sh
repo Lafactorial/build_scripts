@@ -130,7 +130,7 @@ ok "Dependencies ready"
 section "Preparing Workspace"
 
 rm -rf .repo/local_manifests
-rm -rf "device/xiaomi/${DEVICE}"
+rm -rf "out/target/product/${DEVICE}"
 rm -rf prebuilts/gcc 2>/dev/null || true
 
 ok "Workspace prepared"
@@ -254,34 +254,14 @@ lunch "${LUNCH_TARGET}"
 ok "Build target selected: ${LUNCH_TARGET}"
 
 # ============================================================
-# Build Cleanup
+# Install Clean
 # ============================================================
 
-if [[ ! -f "${BUILD_MARKER}" ]]; then
+section "Running Install Clean"
 
-    section "First Build Cleanup"
+make installclean
 
-    warn "No previous successful build detected"
-    info "Running: make clean"
-    info "This is the only full clean; build output will be kept afterwards."
-
-    make clean || fail "make clean failed"
-
-    ok "Full clean complete"
-
-else
-
-    section "Dirty Build Cleanup"
-
-    info "Previous successful build detected"
-    info "Keeping existing build output"
-    info "Running: make installclean"
-
-    make installclean || fail "make installclean failed"
-
-    ok "Install clean complete"
-
-fi
+ok "Install clean complete"
 
 # ============================================================
 # Build

@@ -237,7 +237,7 @@ section "Build Configuration"
 echo -e "${CYAN}${BOLD}"
 echo "╭────────────────────────────────────────────────────────────╮"
 echo "│ TARGET                                                      │"
-echo "├─────────────────────────────────────────────────────────────┤"
+echo "├────────────────────────────────────────────────────────────┤"
 echo "│ Device     : POCO X6 5G/ garnet                             │"
 echo "│ Product    : lineage_garnet                                 │"
 echo "│ Variant    : cp2a-user                                      │"
@@ -303,6 +303,44 @@ ok "Evolution-X build successful"
 info "Build time: ${BUILD_MINUTES} minutes"
 
 # ============================================================
+# Gofile Upload
+# ============================================================
+
+section "Uploading to Gofile"
+
+OUT_PATH="out/target/product/${DEVICE}"
+ZIP_FILE=$(find "${OUT_PATH}" -maxdepth 1 -type f -name "Evolution-X*.zip" | head -n 1)
+
+if [[ -f "${ZIP_FILE}" ]]; then
+    info "Found build file: ${ZIP_FILE}"
+    info "Fetching available Gofile server..."
+
+    SERVER_RESP=$(curl -s "https://api.gofile.io/servers")
+    SERVER=$(echo "${SERVER_RESP}" | jq -r '.data.servers[0].name' 2>/dev/null || true)
+
+    if [[ -n "${SERVER}" && "${SERVER}" != "null" ]]; then
+        info "Uploading to server: ${SERVER}.gofile.io"
+
+        UPLOAD_RESP=$(curl -s -F "file=@${ZIP_FILE}" "https://${SERVER}.gofile.io/contents/uploadfile")
+        DOWNLOAD_PAGE=$(echo "${UPLOAD_RESP}" | jq -r '.data.downloadPage' 2>/dev/null || true)
+
+        if [[ -n "${DOWNLOAD_PAGE}" && "${DOWNLOAD_PAGE}" != "null" ]]; then
+            ok "File successfully uploaded!"
+            GOFILE_LINK="${DOWNLOAD_PAGE}"
+        else
+            fail "Failed to upload file to Gofile."
+            GOFILE_LINK="Upload Failed"
+        fi
+    else
+        fail "Could not retrieve Gofile server list."
+        GOFILE_LINK="Server Fetch Failed"
+    fi
+else
+    fail "No zip file found in ${OUT_PATH} matching 'Evolution-X*.zip'"
+    GOFILE_LINK="File Not Found"
+fi
+
+# ============================================================
 # Finish
 # ============================================================
 
@@ -321,3 +359,9 @@ echo "╔═══════════════════════�
 echo "║                  EVOLUTION-X COMPLETE                      ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${RESET}"
+
+if [[ "${GOFILE_LINK}" == http* ]]; then
+    echo -e "${YELLOW}${BOLD} Download Link: ${CYAN}${GOFILE_LINK}${RESET}\n"
+else
+    echo -e "${RED}${BOLD} Download Link Status: ${GOFILE_LINK}${RESET}\n"
+fi

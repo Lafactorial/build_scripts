@@ -131,7 +131,6 @@ section "Preparing Workspace"
 
 rm -rf .repo/local_manifests
 rm -rf "device/xiaomi/${DEVICE}"
-rm -rf vendor/evolution-priv/keys
 rm -rf prebuilts/gcc 2>/dev/null || true
 
 ok "Workspace prepared"

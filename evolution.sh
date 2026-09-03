@@ -60,7 +60,6 @@ fail() {
 # -----------------------------
 # Runtime variables
 # -----------------------------
-BUILD_MARKER="out/.garnet_evolution_first_build_done"
 
 JOB_START=$(date +%s)
 
@@ -303,10 +302,6 @@ fi
 
 ok "Evolution-X build successful"
 info "Build time: ${BUILD_MINUTES} minutes"
-
-mkdir -p "$(dirname "${BUILD_MARKER}")"
-touch "${BUILD_MARKER}"
-ok "Successful build marker updated"
 
 # ============================================================
 # Finish

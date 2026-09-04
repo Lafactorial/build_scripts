@@ -301,7 +301,7 @@ if [[ -f "${ZIP_FILE}" ]]; then
         GOFILE_LINK="Upload Failed"
     fi
 else
-    fail "No zip file found in ${OUT_PATH} matching 'Evolution*.zip'"
+    fail "No zip file found in ${OUT_PATH} matching 'crDroid*.zip'"
     GOFILE_LINK="File Not Found"
 fi
 

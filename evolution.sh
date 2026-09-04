@@ -309,7 +309,7 @@ info "Build time: ${BUILD_MINUTES} minutes"
 section "Uploading to Gofile"
 
 OUT_PATH="out/target/product/${DEVICE}"
-ZIP_FILE=$(find "${OUT_PATH}" -maxdepth 1 -type f -name "EvolutionX*.zip" | head -n 1)
+ZIP_FILE=$(find "${OUT_PATH}" -maxdepth 1 -type f -name "*.zip" | head -n 1)
 
 if [[ -f "${ZIP_FILE}" ]]; then
     info "Found build file: ${ZIP_FILE}"
@@ -336,7 +336,7 @@ if [[ -f "${ZIP_FILE}" ]]; then
         GOFILE_LINK="Server Fetch Failed"
     fi
 else
-    fail "No zip file found in ${OUT_PATH} matching 'Evolution-X*.zip'"
+    fail "No zip file found in ${OUT_PATH} matching '*.zip'"
     GOFILE_LINK="File Not Found"
 fi
 

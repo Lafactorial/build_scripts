@@ -284,38 +284,24 @@ ZIP_FILE=$(find "${OUT_PATH}" -maxdepth 1 -type f -iname "crDroid*.zip" | head -
 
 if [[ -f "${ZIP_FILE}" ]]; then
     info "Found build file: ${ZIP_FILE}"
-    info "Preparing Gofile API session..."
+    info "Uploading to Gofile (new API)..."
 
-    ACCOUNT_RESP=$(curl -s -X POST "https://api.gofile.io/accounts")
-    TOKEN=$(echo "${ACCOUNT_RESP}" | jq -r '.data.token' 2>/dev/null || true)
+    UPLOAD_RESP=$(curl -s -F "file=@${ZIP_FILE}" "https://upload.gofile.io/uploadfile")
 
-    SERVER_RESP=$(curl -s "https://api.gofile.io/servers")
-    SERVER=$(echo "${SERVER_RESP}" | jq -r '.data.servers[0].name' 2>/dev/null || true)
+    STATUS=$(echo "${UPLOAD_RESP}" | jq -r '.status' 2>/dev/null || true)
+    DOWNLOAD_PAGE=$(echo "${UPLOAD_RESP}" | jq -r '.data.downloadPage' 2>/dev/null || true)
 
-    if [[ -n "${SERVER}" && "${SERVER}" != "null" ]]; then
-        info "Uploading to server: ${SERVER}.gofile.io"
-
-        if [[ -n "${TOKEN}" && "${TOKEN}" != "null" ]]; then
-            UPLOAD_RESP=$(curl -s -H "Authorization: Bearer ${TOKEN}" -F "file=@${ZIP_FILE}" "https://${SERVER}.gofile.io/contents/uploadfile")
-        else
-            UPLOAD_RESP=$(curl -s -F "file=@${ZIP_FILE}" "https://${SERVER}.gofile.io/contents/uploadfile")
-        fi
-
-        DOWNLOAD_PAGE=$(echo "${UPLOAD_RESP}" | jq -r '.data.downloadPage' 2>/dev/null || true)
-
-        if [[ -n "${DOWNLOAD_PAGE}" && "${DOWNLOAD_PAGE}" != "null" ]]; then
-            ok "File successfully uploaded!"
-            GOFILE_LINK="${DOWNLOAD_PAGE}"
-        else
-            fail "Failed to upload file to Gofile."
-            GOFILE_LINK="Upload Failed"
-        fi
+    if [[ "${STATUS}" == "ok" && -n "${DOWNLOAD_PAGE}" && "${DOWNLOAD_PAGE}" != "null" ]]; then
+        ok "File successfully uploaded!"
+        GOFILE_LINK="${DOWNLOAD_PAGE}"
     else
-        fail "Could not retrieve Gofile server list."
-        GOFILE_LINK="Server Fetch Failed"
+        fail "Failed to upload file to Gofile."
+        echo "Response:"
+        echo "${UPLOAD_RESP}" | jq . 2>/dev/null || echo "${UPLOAD_RESP}"
+        GOFILE_LINK="Upload Failed"
     fi
 else
-    fail "No zip file found in ${OUT_PATH} matching 'crDroid*.zip'"
+    fail "No zip file found in ${OUT_PATH} matching 'Evolution*.zip'"
     GOFILE_LINK="File Not Found"
 fi
 

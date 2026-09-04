@@ -134,6 +134,7 @@ repo init \
     -u "${ROM_URL}" \
     -b "${ROM_BRANCH}" \
     --git-lfs \
+    --no-clone-bundle \
     --depth=1
 
 ok "crDroid repository initialized"

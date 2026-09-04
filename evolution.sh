@@ -309,11 +309,14 @@ info "Build time: ${BUILD_MINUTES} minutes"
 section "Uploading to Gofile"
 
 OUT_PATH="out/target/product/${DEVICE}"
-ZIP_FILE=$(find "${OUT_PATH}" -maxdepth 1 -type f -name "*.zip" | head -n 1)
+ZIP_FILE=$(find "${OUT_PATH}" -maxdepth 1 -type f -name "Evolution*.zip" | head -n 1)
 
 if [[ -f "${ZIP_FILE}" ]]; then
     info "Found build file: ${ZIP_FILE}"
-    info "Fetching available Gofile server..."
+    info "Preparing Gofile API session..."
+
+    ACCOUNT_RESP=$(curl -s -X POST "https://api.gofile.io/accounts")
+    TOKEN=$(echo "${ACCOUNT_RESP}" | jq -r '.data.token' 2>/dev/null || true)
 
     SERVER_RESP=$(curl -s "https://api.gofile.io/servers")
     SERVER=$(echo "${SERVER_RESP}" | jq -r '.data.servers[0].name' 2>/dev/null || true)
@@ -321,7 +324,12 @@ if [[ -f "${ZIP_FILE}" ]]; then
     if [[ -n "${SERVER}" && "${SERVER}" != "null" ]]; then
         info "Uploading to server: ${SERVER}.gofile.io"
 
-        UPLOAD_RESP=$(curl -s -F "file=@${ZIP_FILE}" "https://${SERVER}.gofile.io/contents/uploadfile")
+        if [[ -n "${TOKEN}" && "${TOKEN}" != "null" ]]; then
+            UPLOAD_RESP=$(curl -s -H "Authorization: Bearer ${TOKEN}" -F "file=@${ZIP_FILE}" "https://${SERVER}.gofile.io/contents/uploadfile")
+        else
+            UPLOAD_RESP=$(curl -s -F "file=@${ZIP_FILE}" "https://${SERVER}.gofile.io/contents/uploadfile")
+        fi
+
         DOWNLOAD_PAGE=$(echo "${UPLOAD_RESP}" | jq -r '.data.downloadPage' 2>/dev/null || true)
 
         if [[ -n "${DOWNLOAD_PAGE}" && "${DOWNLOAD_PAGE}" != "null" ]]; then
@@ -336,7 +344,7 @@ if [[ -f "${ZIP_FILE}" ]]; then
         GOFILE_LINK="Server Fetch Failed"
     fi
 else
-    fail "No zip file found in ${OUT_PATH} matching '*.zip'"
+    fail "No zip file found in ${OUT_PATH} matching 'Evolution*.zip'"
     GOFILE_LINK="File Not Found"
 fi
 

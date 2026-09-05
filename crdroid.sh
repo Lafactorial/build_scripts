@@ -17,6 +17,7 @@ MANIFEST_URL="https://github.com/Lafactorial/local_manifest.git"
 MANIFEST_BRANCH="garnet-crdroid"
 
 DEVICE="garnet"
+LUNCH_TARGET="lineage_garnet-user
 
 export TZ="Europe/Istanbul"
 export BUILD_USERNAME="HaKaN"
@@ -221,6 +222,27 @@ section "Loading Build Environment"
 ok "Build environment loaded"
 
 # ============================================================
+# Lunch
+# ============================================================
+
+section "Build Configuration"
+
+echo -e "${CYAN}${BOLD}"
+echo "╭────────────────────────────────────────────────────────────╮"
+echo "│ TARGET                                                      │"
+echo "├────────────────────────────────────────────────────────────┤"
+echo "│ Device     : POCO X6 5G/ garnet                             │"
+echo "│ Product    : lineage_garnet                                 │"
+echo "╰────────────────────────────────────────────────────────────╯"
+echo -e "${RESET}"
+
+info "Selecting target: ${LUNCH_TARGET}"
+
+lunch "${LUNCH_TARGET}"
+
+ok "Build target selected: ${LUNCH_TARGET}"
+
+# ============================================================
 # Install Clean
 # ============================================================
 
@@ -238,9 +260,7 @@ section "Building crDroid"
 
 BUILD_START=$(date +%s)
 
-info "Executing brunch for target: ${DEVICE}"
-
-if brunch "${DEVICE}"; then
+if mka bacon; then
 
     BUILD_SUCCESS=1
 

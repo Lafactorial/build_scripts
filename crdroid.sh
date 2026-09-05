@@ -17,7 +17,7 @@ MANIFEST_URL="https://github.com/Lafactorial/local_manifest.git"
 MANIFEST_BRANCH="garnet-crdroid"
 
 DEVICE="garnet"
-LUNCH_TARGET="lineage_garnet-user
+LUNCH_TARGET="lineage_garnet-user"
 
 export TZ="Europe/Istanbul"
 export BUILD_USERNAME="HaKaN"

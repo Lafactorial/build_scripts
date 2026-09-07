@@ -233,11 +233,11 @@ echo "├───────────────────────�
 echo "│ Device     : POCO X6 5G / garnet                           │"
 echo "│ Product    : garnet                                        │"
 echo "│ Variant    : user                                          │"
-echo "│ Build cmd  : brunch garnet user                           │"
+echo "│ Build cmd  : brunch garnet                                 │"
 echo "╰────────────────────────────────────────────────────────────╯"
 echo -e "${RESET}"
 
-info "Build command: brunch garnet user"
+info "Build command: brunch garnet"
 
 # ============================================================
 # Install Clean
@@ -257,7 +257,7 @@ section "Building crDroid"
 
 BUILD_START=$(date +%s)
 
-if brunch garnet user; then
+if brunch garnet; then
 
     BUILD_SUCCESS=1
 

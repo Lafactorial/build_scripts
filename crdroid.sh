@@ -72,13 +72,13 @@ banner() {
     echo -e "${CYAN}${BOLD}"
     echo "╔════════════════════════════════════════════════════════════╗"
     echo "║                                                            ║"
+    echo "║                                                            ║"
     echo "║                  crDroidandroid                            ║"
     echo "║               Automated Build Script                       ║"
     echo "║                                                            ║"
     echo "╠════════════════════════════════════════════════════════════╣"
     echo "║  Device     : POCO X6 5G / garnet                          ║"
     echo "║  Branch     : 16.0                                         ║"
-    echo "║  Build Mode : brunch ${DEVICE}                                 ║"
     echo "╚════════════════════════════════════════════════════════════╝"
     echo -e "${RESET}"
 }
@@ -91,10 +91,25 @@ banner
 
 section "Checking Dependencies"
 
-command -v git >/dev/null || { fail "git is missing"; exit 1; }
-command -v repo >/dev/null || { fail "repo is missing"; exit 1; }
-command -v curl >/dev/null || { fail "curl is missing"; exit 1; }
-command -v jq >/dev/null || { fail "jq is missing"; exit 1; }
+command -v git >/dev/null || {
+    fail "git is missing"
+    exit 1
+}
+
+command -v repo >/dev/null || {
+    fail "repo is missing"
+    exit 1
+}
+
+command -v curl >/dev/null || {
+    fail "curl is missing"
+    exit 1
+}
+
+command -v jq >/dev/null || {
+    fail "jq is missing"
+    exit 1
+}
 
 ok "Dependencies ready"
 
@@ -147,17 +162,47 @@ section "Syncing Source"
 SYNC_START=$(date +%s)
 
 if [[ -x "/opt/crave/resync.sh" ]]; then
+
     info "Using Crave resync"
+
     if /opt/crave/resync.sh; then
+
         ok "Crave resync complete"
+
     else
-        warn "Crave resync returned an error. Starting forced repo sync..."
-        repo sync -c --force-sync --force-remove-dirty --no-tags --no-clone-bundle || warn "Continuing build anyway..."
+
+        warn "Crave resync returned an error"
+        warn "Starting forced repo sync..."
+
+        repo sync \
+            -c \
+            --force-sync \
+            --force-remove-dirty \
+            --no-tags \
+            --no-clone-bundle \
+            || {
+                warn "Forced repo sync returned an error"
+                warn "Continuing build anyway..."
+            }
+
     fi
+
 else
+
     warn "Crave resync not found"
     info "Using forced repo sync"
-    repo sync -c --force-sync --force-remove-dirty --no-tags --no-clone-bundle || warn "Continuing build anyway..."
+
+    repo sync \
+        -c \
+        --force-sync \
+        --force-remove-dirty \
+        --no-tags \
+        --no-clone-bundle \
+        || {
+            warn "Repo sync returned an error"
+            warn "Continuing build anyway..."
+        }
+
 fi
 
 SYNC_END=$(date +%s)
@@ -176,6 +221,25 @@ section "Loading Build Environment"
 ok "Build environment loaded"
 
 # ============================================================
+# Lunch
+# ============================================================
+
+section "Build Configuration"
+
+echo -e "${CYAN}${BOLD}"
+echo "╭────────────────────────────────────────────────────────────╮"
+echo "│ TARGET                                                     │"
+echo "├────────────────────────────────────────────────────────────┤"
+echo "│ Device     : POCO X6 5G / garnet                           │"
+echo "│ Product    : garnet                                        │"
+echo "│ Variant    : user                                          │"
+echo "│ Build cmd  : brunch garnet user                           │"
+echo "╰────────────────────────────────────────────────────────────╯"
+echo -e "${RESET}"
+
+info "Build command: brunch garnet user"
+
+# ============================================================
 # Install Clean
 # ============================================================
 
@@ -191,34 +255,33 @@ ok "Install clean complete"
 
 section "Building crDroid"
 
-echo -e "${CYAN}${BOLD}"
-echo "╭────────────────────────────────────────────────────────────╮"
-echo "│ TARGET                                                      │"
-echo "├────────────────────────────────────────────────────────────┤"
-echo "│ Device     : POCO X6 5G / garnet                           │"
-echo "│ Command    : brunch ${DEVICE}                                │"
-echo "╰────────────────────────────────────────────────────────────╯"
-echo -e "${RESET}"
-
 BUILD_START=$(date +%s)
 
-if brunch "${DEVICE}"; then
+if brunch garnet user; then
+
     BUILD_SUCCESS=1
+
 else
+
     BUILD_SUCCESS=0
+
 fi
 
 BUILD_END=$(date +%s)
 BUILD_MINUTES=$(((BUILD_END - BUILD_START) / 60))
+
 
 # ============================================================
 # Build Failed
 # ============================================================
 
 if [[ "${BUILD_SUCCESS}" != "1" ]]; then
+
     fail "crDroid build failed"
     info "Build time: ${BUILD_MINUTES} minutes"
+
     exit 1
+
 fi
 
 # ============================================================
@@ -273,6 +336,7 @@ ok "Everything finished"
 info "Total time: ${TOTAL_MINUTES} minutes"
 
 echo
+
 echo -e "${GREEN}${BOLD}"
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║                  CRDROID BUILD COMPLETED                   ║"

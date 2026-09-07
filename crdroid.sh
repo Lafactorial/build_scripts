@@ -226,35 +226,6 @@ section "Loading Build Environment"
 ok "Build environment loaded"
 
 # ============================================================
-# Lunch
-# ============================================================
-
-section "Build Configuration"
-
-echo -e "${CYAN}${BOLD}"
-echo "╭────────────────────────────────────────────────────────────╮"
-echo "│ TARGET                                                     │"
-echo "├────────────────────────────────────────────────────────────┤"
-echo "│ Device     : POCO X6 5G / garnet                           │"
-echo "│ Product    : garnet                                        │"
-echo "│ Variant    : userdebug                                          │"
-echo "│ Build cmd  : brunch garnet                                 │"
-echo "╰────────────────────────────────────────────────────────────╯"
-echo -e "${RESET}"
-
-info "Build command: brunch garnet"
-
-# ============================================================
-# Install Clean
-# ============================================================
-
-section "Running Install Clean"
-
-make installclean
-
-ok "Install clean complete"
-
-# ============================================================
 # Build
 # ============================================================
 
@@ -262,32 +233,10 @@ section "Building crDroid"
 
 BUILD_START=$(date +%s)
 
-if brunch garnet; then
-
-    BUILD_SUCCESS=1
-
-else
-
-    BUILD_SUCCESS=0
-
-fi
+brunch garnet user
 
 BUILD_END=$(date +%s)
 BUILD_MINUTES=$(((BUILD_END - BUILD_START) / 60))
-
-
-# ============================================================
-# Build Failed
-# ============================================================
-
-if [[ "${BUILD_SUCCESS}" != "1" ]]; then
-
-    fail "crDroid build failed"
-    info "Build time: ${BUILD_MINUTES} minutes"
-
-    exit 1
-
-fi
 
 # ============================================================
 # Build Successful

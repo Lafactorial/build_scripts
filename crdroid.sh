@@ -232,7 +232,7 @@ echo "│ TARGET                                                     │"
 echo "├────────────────────────────────────────────────────────────┤"
 echo "│ Device     : POCO X6 5G / garnet                           │"
 echo "│ Product    : garnet                                        │"
-echo "│ Variant    : user                                          │"
+echo "│ Variant    : userdebug                                          │"
 echo "│ Build cmd  : brunch garnet                                 │"
 echo "╰────────────────────────────────────────────────────────────╯"
 echo -e "${RESET}"
@@ -304,7 +304,7 @@ if [[ -f "${ZIP_FILE}" ]]; then
     info "Found build file: ${ZIP_FILE}"
     info "Uploading to Gofile (new API)..."
 
-    UPLOAD_RESP=$(curl -s -F "file=@${ZIP_FILE}" "https://upload.gofile.io/uploadfile")
+    UPLOAD_RESP=$(curl -s --max-time 0 -X POST -F "file=@${ZIP_FILE}" "https://upload.gofile.io/uploadfile")
 
     STATUS=$(echo "${UPLOAD_RESP}" | jq -r '.status' 2>/dev/null || true)
     DOWNLOAD_PAGE=$(echo "${UPLOAD_RESP}" | jq -r '.data.downloadPage' 2>/dev/null || true)

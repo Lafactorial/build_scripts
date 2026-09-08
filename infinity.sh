@@ -112,6 +112,11 @@ command -v jq >/dev/null || {
     exit 1
 }
 
+command -v wget >/dev/null || {
+    fail "wget is missing"
+    exit 1
+}
+
 ok "Dependencies ready"
 
 # ============================================================
@@ -233,7 +238,7 @@ echo "╭───────────────────────�
 echo "│ TARGET                                                      │"
 echo "├────────────────────────────────────────────────────────────┤"
 echo "│ Device     : POCO X6 5G/ garnet                             │"
-echo "│ Product    : infinity_garnet                                 │"
+echo "│ Product    : infinity_garnet                                │"
 echo "╰────────────────────────────────────────────────────────────╯"
 echo -e "${RESET}"
 
@@ -301,24 +306,27 @@ info "Build time: ${BUILD_MINUTES} minutes"
 section "Uploading to Gofile"
 
 OUT_PATH="out/target/product/${DEVICE}"
-ZIP_FILE=$(find "${OUT_PATH}" -maxdepth 1 -type f -name "Project*.zip" | head -n 1)
+ZIP_FILE=$(find "${OUT_PATH}" -maxdepth 1 -type f -iname "Project*.zip" | head -n 1)
 
 if [[ -f "${ZIP_FILE}" ]]; then
     info "Found build file: ${ZIP_FILE}"
-    info "Uploading to Gofile (new API)..."
+    
+    if ! command -v gofile >/dev/null 2>&1; then
+        info "gofile not found, downloading..."
+        sudo wget -q https://raw.githubusercontent.com/Sushrut1101/GoFile-Upload/refs/heads/master/upload.sh -O /usr/local/bin/gofile
+        sudo chmod +x /usr/local/bin/gofile
+        ok "gofile installed successfully"
+    fi
 
-    UPLOAD_RESP=$(curl -s -F "file=@${ZIP_FILE}" "https://upload.gofile.io/uploadfile")
+    info "Uploading to Gofile..."
 
-    STATUS=$(echo "${UPLOAD_RESP}" | jq -r '.status' 2>/dev/null || true)
-    DOWNLOAD_PAGE=$(echo "${UPLOAD_RESP}" | jq -r '.data.downloadPage' 2>/dev/null || true)
+    GOFILE_LINK=$(gofile "${ZIP_FILE}" 2>/dev/null | head -n 1) || true
 
-    if [[ "${STATUS}" == "ok" && -n "${DOWNLOAD_PAGE}" && "${DOWNLOAD_PAGE}" != "null" ]]; then
+    if [[ -n "${GOFILE_LINK}" && "${GOFILE_LINK}" == http* ]]; then
         ok "File successfully uploaded!"
-        GOFILE_LINK="${DOWNLOAD_PAGE}"
     else
         fail "Failed to upload file to Gofile."
-        echo "Response:"
-        echo "${UPLOAD_RESP}" | jq . 2>/dev/null || echo "${UPLOAD_RESP}"
+        echo "Response: ${GOFILE_LINK}"
         GOFILE_LINK="Upload Failed"
     fi
 else
@@ -342,7 +350,7 @@ echo
 
 echo -e "${GREEN}${BOLD}"
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║                  Project Infinity-X BUILD COMPLETED                   ║"
+echo "║           Project Infinity-X BUILD COMPLETED               ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo -e "${RESET}"
 

@@ -233,7 +233,7 @@ section "Building crDroid"
 
 BUILD_START=$(date +%s)
 
-brunch garnet user
+brunch garnet userdebug
 
 BUILD_END=$(date +%s)
 BUILD_MINUTES=$(((BUILD_END - BUILD_START) / 60))

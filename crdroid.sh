@@ -216,6 +216,23 @@ ok "Source sync stage finished"
 info "Sync time: $(((SYNC_END - SYNC_START) / 60)) minutes"
 
 # ============================================================
+# Apply Patches
+# ============================================================
+
+section "Applying Framework Patches"
+
+if grep -q "OPTION_CHECK_BRACKETS" frameworks/base/core/java/android/database/sqlite/SQLiteTokenizer.java 2>/dev/null; then
+    echo "already patched, skipping"
+else
+    info "Applying SQLiteTokenizer patch..."
+    curl -L https://github.com/xc112lg/android_frameworks_base/commit/025f44b3413aa9dd859b4dab03241dabf573036f.patch | git -C frameworks/base am || {
+        fail "Failed to apply patch"
+        exit 1
+    }
+    ok "Patch applied successfully"
+fi
+
+# ============================================================
 # Build Environment
 # ============================================================
 

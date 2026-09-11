@@ -1,0 +1,361 @@
+#!/bin/bash
+
+set -e
+
+# ============================================================
+# ASCP Garnet Build Script
+# ============================================================
+
+# -----------------------------
+# ROM Configuration
+# -----------------------------
+ROM_NAME="Ascp"
+ROM_URL="https://github.com/Pixelify-AOSP/platform_manifest"
+ROM_BRANCH="17"
+
+MANIFEST_URL="https://github.com/Lafactorial/local_manifest.git"
+MANIFEST_BRANCH="garnet-ascp"
+
+DEVICE="garnet"
+LUNCH_TARGET="garnet-cp2a-userdebug"
+
+export TZ="Europe/Istanbul"
+export BUILD_USERNAME="HaKaN"
+export BUILD_HOSTNAME="crave"
+
+# -----------------------------
+# Colors
+# -----------------------------
+RESET='\033[0m'
+RED='\033[31m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+CYAN='\033[36m'
+BOLD='\033[1m'
+
+section() {
+    echo
+    echo -e "${CYAN}${BOLD}╔════════════════════════════════════════════════════════════╗${RESET}"
+    printf "${CYAN}${BOLD}║  %-56s║${RESET}\n" "$1"
+    echo -e "${CYAN}${BOLD}╚════════════════════════════════════════════════════════════╝${RESET}"
+}
+
+info() {
+    echo -e "${BLUE}ℹ ${RESET}$1"
+}
+
+ok() {
+    echo -e "${GREEN}✔ ${RESET}$1"
+}
+
+warn() {
+    echo -e "${YELLOW}⚠ ${RESET}$1"
+}
+
+fail() {
+    echo -e "${RED}✖ ${RESET}$1"
+}
+
+# -----------------------------
+# Runtime variables
+# -----------------------------
+
+JOB_START=$(date +%s)
+
+# ============================================================
+# UI
+# ============================================================
+
+banner() {
+    clear
+
+    echo -e "${CYAN}${BOLD}"
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║                                                            ║"
+    echo "║                     A S C P                                ║"
+    echo "║              Automated Build Script                        ║"
+    echo "║                                                            ║"
+    echo "╠════════════════════════════════════════════════════════════╣"
+    echo "║  Device     : POCO X6 5G / garnet                          ║"
+    echo "║  Build      : cp2a-userdebug                               ║"
+    echo "║  Branch     : 17                                           ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo -e "${RESET}"
+}
+
+# ============================================================
+# Start
+# ============================================================
+
+banner
+
+section "Checking Dependencies"
+
+command -v git >/dev/null || {
+    fail "git is missing"
+    exit 1
+}
+
+command -v repo >/dev/null || {
+    fail "repo is missing"
+    exit 1
+}
+
+command -v curl >/dev/null || {
+    fail "curl is missing"
+    exit 1
+}
+
+command -v jq >/dev/null || {
+    fail "jq is missing"
+    exit 1
+}
+
+command -v wget >/dev/null || {
+    fail "wget is missing"
+    exit 1
+}
+
+ok "Dependencies ready"
+
+# ============================================================
+# Prepare Workspace
+# ============================================================
+
+section "Preparing Workspace"
+
+rm -rf .repo/local_manifests
+rm -rf "out/target/product/${DEVICE}"
+
+ok "Workspace prepared"
+
+# ============================================================
+# Repo Init
+# ============================================================
+
+section "Initializing Ascp"
+
+repo init \
+    -u "${ROM_URL}" \
+    -b "${ROM_BRANCH}" \
+    --git-lfs \
+    --depth=1
+
+ok "Ascp repository initialized"
+
+# ============================================================
+# Local Manifest
+# ============================================================
+
+section "Cloning Device Manifest"
+
+git clone \
+    --depth=1 \
+    "${MANIFEST_URL}" \
+    -b "${MANIFEST_BRANCH}" \
+    .repo/local_manifests
+
+ok "Device manifest installed"
+
+# ============================================================
+# Sync
+# ============================================================
+
+section "Syncing Source"
+
+SYNC_START=$(date +%s)
+
+if [[ -x "/opt/crave/resync.sh" ]]; then
+
+    info "Using Crave resync"
+
+    if /opt/crave/resync.sh; then
+
+        ok "Crave resync complete"
+
+    else
+
+        warn "Crave resync returned an error"
+        warn "Starting forced repo sync..."
+
+        repo sync \
+            -c \
+            --force-sync \
+            --force-remove-dirty \
+            --no-tags \
+            --no-clone-bundle \
+            || {
+                warn "Forced repo sync returned an error"
+                warn "Continuing build anyway..."
+            }
+
+    fi
+
+else
+
+    warn "Crave resync not found"
+    info "Using forced repo sync"
+
+    repo sync \
+        -c \
+        --force-sync \
+        --force-remove-dirty \
+        --no-tags \
+        --no-clone-bundle \
+        || {
+            warn "Repo sync returned an error"
+            warn "Continuing build anyway..."
+        }
+
+fi
+
+SYNC_END=$(date +%s)
+
+ok "Source sync stage finished"
+info "Sync time: $(((SYNC_END - SYNC_START) / 60)) minutes"
+
+# ============================================================
+# Build Environment
+# ============================================================
+
+section "Loading Build Environment"
+
+. build/envsetup.sh
+
+ok "Build environment loaded"
+
+# ============================================================
+# Lunch
+# ============================================================
+
+section "Build Configuration"
+
+echo -e "${CYAN}${BOLD}"
+echo "╭────────────────────────────────────────────────────────────╮"
+echo "│ TARGET                                                      │"
+echo "├────────────────────────────────────────────────────────────┤"
+echo "│ Device     : POCO X6 5G/ garnet                             │"
+echo "│ Product    : garnet                                         │"
+echo "│ Variant    : cp2a-userdebug                                 │"
+echo "│ Build type : Userdebug                                           │"
+echo "╰────────────────────────────────────────────────────────────╯"
+echo -e "${RESET}"
+
+info "Selecting target: ${LUNCH_TARGET}"
+
+lunch "${LUNCH_TARGET}"
+
+ok "Build target selected: ${LUNCH_TARGET}"
+
+# ============================================================
+# Install Clean
+# ============================================================
+
+section "Running Install Clean"
+
+make installclean
+
+ok "Install clean complete"
+
+# ============================================================
+# Build
+# ============================================================
+
+section "Building Ascp"
+
+BUILD_START=$(date +%s)
+
+if mka bacon; then
+
+    BUILD_SUCCESS=1
+
+else
+
+    BUILD_SUCCESS=0
+
+fi
+
+BUILD_END=$(date +%s)
+BUILD_MINUTES=$(((BUILD_END - BUILD_START) / 60))
+
+# ============================================================
+# Build Failed
+# ============================================================
+
+if [[ "${BUILD_SUCCESS}" != "1" ]]; then
+
+    fail "Ascp build failed"
+    info "Build time: ${BUILD_MINUTES} minutes"
+
+    exit 1
+
+fi
+
+# ============================================================
+# Build Successful
+# ============================================================
+
+ok "Ascp build successful"
+info "Build time: ${BUILD_MINUTES} minutes"
+
+# ============================================================
+# Gofile Upload
+# ============================================================
+
+section "Uploading to Gofile"
+
+OUT_PATH="out/target/product/${DEVICE}"
+ZIP_FILE=$(find "${OUT_PATH}" -maxdepth 1 -type f -iname "ASCP*.zip" | head -n 1)
+
+if [[ -f "${ZIP_FILE}" ]]; then
+    info "Found build file: ${ZIP_FILE}"
+    
+    if ! command -v gofile >/dev/null 2>&1; then
+        info "gofile not found, downloading..."
+        sudo wget -q https://raw.githubusercontent.com/Sushrut1101/GoFile-Upload/refs/heads/master/upload.sh -O /usr/local/bin/gofile
+        sudo chmod +x /usr/local/bin/gofile
+        ok "gofile installed successfully"
+    fi
+
+    info "Uploading to Gofile..."
+
+    GOFILE_LINK=$(gofile "${ZIP_FILE}" 2>/dev/null | head -n 1) || true
+
+    if [[ -n "${GOFILE_LINK}" && "${GOFILE_LINK}" == http* ]]; then
+        ok "File successfully uploaded!"
+    else
+        fail "Failed to upload file to Gofile."
+        echo "Response: ${GOFILE_LINK}"
+        GOFILE_LINK="Upload Failed"
+    fi
+else
+    fail "No zip file found in ${OUT_PATH} matching 'ASCP*.zip'"
+    GOFILE_LINK="File Not Found"
+fi
+
+# ============================================================
+# Finish
+# ============================================================
+
+JOB_END=$(date +%s)
+TOTAL_MINUTES=$(((JOB_END - JOB_START) / 60))
+
+section "Job Complete"
+
+ok "Everything finished"
+info "Total time: ${TOTAL_MINUTES} minutes"
+
+echo
+
+echo -e "${GREEN}${BOLD}"
+echo "╔════════════════════════════════════════════════════════════╗"
+echo "║                  ASCP BUILD COMPLETED                      ║"
+echo "╚════════════════════════════════════════════════════════════╝"
+echo -e "${RESET}"
+
+if [[ "${GOFILE_LINK}" == http* ]]; then
+    echo -e "${YELLOW}${BOLD} Download Link: ${CYAN}${GOFILE_LINK}${RESET}\n"
+else
+    echo -e "${RED}${BOLD} Download Link Status: ${GOFILE_LINK}${RESET}\n"
+fi

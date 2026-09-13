@@ -127,6 +127,8 @@ section "Preparing Workspace"
 
 rm -rf .repo/local_manifests
 rm -rf "out/target/product/${DEVICE}"
+rm -rf prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
+rm -rf prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9
 
 ok "Workspace prepared"
 

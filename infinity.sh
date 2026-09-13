@@ -11,13 +11,13 @@ set -e
 # -----------------------------
 ROM_NAME="ProjectInfinity-X"
 ROM_URL="https://github.com/ProjectInfinity-X/manifest"
-ROM_BRANCH="16"
+ROM_BRANCH="17"
 
 MANIFEST_URL="https://github.com/Lafactorial/local_manifest.git"
 MANIFEST_BRANCH="garnet-infinity"
 
 DEVICE="garnet"
-LUNCH_TARGET="infinity_garnet-user"
+LUNCH_TARGET="infinity_garnet-userdebug"
 
 export TZ="Europe/Istanbul"
 export BUILD_USERNAME="HaKaN"
